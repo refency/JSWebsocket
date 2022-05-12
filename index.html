@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <table id="table"></table>
+        <style> input { border: 1px solid green; width: 30px; } </style>
+        <script>
+            const ws = new WebSocket('ws://127.0.0.1:8000/');
+
+            const letters = ['A', 'B', 'C', 'D', 'E'];
+
+            ws.onmessage = (message) => {
+                const event = JSON.parse(message.data);
+                const cell = document.getElementById(event.cell);
+
+                switch (event.type) {
+                    case 'focus': 
+                        cell.style.borderColor = "red";
+                        cell.disabled = true;
+                        break;
+                    case 'blur':
+                        cell.style.borderColor = "green";
+                        cell.disabled = false;
+                        break;
+                    case 'keyup':
+                        cell.value = event.value;
+                        break;
+                }
+            };
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td></td>' + letters.map((col) => `<td>${col}</td>`).join('');
+            table.appendChild(tr);
+
+            const createRow = (i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${i}</td>` + letters.map((col) => `<td><input id="${col}${i}" type="text"></td>`).join('');
+                table.appendChild(tr);
+                letters.forEach((col) => {
+                    const cell = col + i;
+                    const input = document.getElementById(cell);
+                    input.addEventListener('keyup', keyup);
+                    input.addEventListener('focus', focus);
+                    input.addEventListener('blur', blur);
+                });
+            };
+
+            const keyup = (event) => {
+                ws.send(JSON.stringify({
+                    cell: event.target.id,
+                    value: event.target.value,
+                    type: 'keyup'
+                }));
+            };
+
+            const focus = (event) => {
+                ws.send(JSON.stringify({
+                    cell: event.target.id,
+                    type: 'focus'
+                }));
+            };
+
+            const blur = (event) => {
+                ws.send(JSON.stringify({
+                    cell: event.target.id,
+                    type: 'blur'
+                }));
+            };
+
+            for (let i = 1; i <= 5; i++) createRow(i);
+        </script>
+    </body>
+</html>
